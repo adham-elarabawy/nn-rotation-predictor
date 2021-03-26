@@ -1,4 +1,4 @@
-# Custom Implementation of Unsupervised Representation Learning by Predicting Image Rotations
+# Unsupervised Representation Learning by Predicting Image Rotations
 
 ## Self Supervised Learning for Image Classification
 
