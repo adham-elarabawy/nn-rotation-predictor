@@ -42,12 +42,12 @@ def main():
 	n_epochs = config["num_epochs"]
 	model = #make the model with your paramters
 	criterion = #what is your loss function
-	optimizer = #which optimizer are you using
+	optimizer = #which optimizer are you using cross-entropy
 
-	train_dataset = #how will you get your dataset
-	train_loader = #how will you use pytorch's function to build a dataloader
-	val_loader = #how will you get your dataset
-	val_loader = #how will you use pytorch's function to build a dataloader
+    dataset = Data(args.data_dir)
+	train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
+	train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = True)
+	val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
 
 	 for epoch in range(n_epochs):
 	 	 #TODO: make your loop which trains and validates. Use the train() func
