@@ -29,7 +29,7 @@ class Data(Dataset):
         # Note: You do not need to do this if you are reading RGB images
         # or i there is already channel dimension
 
-        image_np = np.expand_dims(image_np, 0)
+#         image_np = np.expand_dims(image_np, 0)
         '''
 		#TODO: Convert your numpy to a tensor and get the labels
 		'''
