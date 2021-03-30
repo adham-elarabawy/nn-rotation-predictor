@@ -10,13 +10,13 @@ Make sure you read enough documentation.
 '''
 
 class Data(Dataset):
-	def __init__(self, data_dir):
-		#gets the data from the directory
-		self.image_list = glob.glob(data_dir+'*')
-		#calculates the length of image_list
-		self.data_len = len(self.image_list)
+    def __init__(self, data_dir):
+        #gets the data from the directory
+        self.image_list = glob.glob(data_dir+'*')
+        #calculates the length of image_list
+        self.data_len = len(self.image_list)
 
-	def __getitem__(self, index):
+    def __getitem__(self, index):
         # Get image name from the pandas df
         single_image_path = self.image_list[index]
         # Open image
@@ -31,12 +31,12 @@ class Data(Dataset):
 
 #         image_np = np.expand_dims(image_np, 0)
         '''
-		#TODO: Convert your numpy to a tensor and get the labels
-		'''
+        #TODO: Convert your numpy to a tensor and get the labels
+        '''
         image_tensor = torch.from_numpy(image_np).float()
         class_indicator_location = single_image_path.rfind('_c')
         label = int(single_image_path[class_indicator_location+2:class_indicator_location+3])
-        return (im_as_ten, label)
+        return (image_np, label)
 
     def __len__(self):
         return self.data_len
