@@ -4,6 +4,7 @@ from torch.autograd import Variable
 from torchvision import transforms
 from torch.utils.data.dataset import Dataset  # For custom datasets
 from data_pytorch import Data
+from resnet import ResNet
 from rotnet import RotNet
 import time
 import shutil
@@ -40,9 +41,9 @@ def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', f
 
 def main():
 	n_epochs = config["num_epochs"]
-	model = #make the model with your paramters
-	criterion = #what is your loss function
-	optimizer = #which optimizer are you using cross-entropy
+	model = ResNet(num_classes=4)
+	criterion = nn.CrossEntropyLoss()
+	optimizer = torch.optim.SGD(model.parameters(), lr=config["learning rate"], momentum=config["momentum"])
 
     dataset = Data(args.data_dir)
 	train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
@@ -50,9 +51,34 @@ def main():
 	val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
 
 	 for epoch in range(n_epochs):
-	 	 #TODO: make your loop which trains and validates. Use the train() func
+            total_loss = 0
+            for batch in train_loader:
+                X_batch, y_batch = batch[0].view(-1, 784), batch[1]
 
-	 	 #TODO: Save your checkpoint
+                ## Actual training process:
+                
+                # reset gradients
+                optimizer.zero_grad()
+                # forward pass
+                predicted_batch = model(X_batch)
+                # compute loss
+                loss = criterion(predicted_batch, y_batch)
+                # compute gradients
+                loss.backward()
+                # update weights/biases
+                optimizer.step()
+                
+                # update total loss
+                total_loss += loss
+
+            print("Epoch {0}: {1}".format(epoch, total_loss))
+            if epoch%5 == 0 and epoch!= 0:
+                test_batch = next(iter(test_dataloader))
+                X_test, y_test = test_batch[0].view(-1, 784), test_batch[1]
+                predicted = model(X_test)
+                test_acc = torch.sum(y_test == torch.argmax(predicted, dim=1), dtype=torch.double) / len(y_test)
+                print("\tTest Accuracy {0}".format(test_acc))
+                            
 
 
 

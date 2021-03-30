@@ -1,10 +1,9 @@
 
 import torch.nn as nn
-#add imports as necessary
 
 class ResNet:
 
-    def __init__(self, block, layers, num_classes=1000):
+    def __init__(self, num_classes=1000):
         super(ResNet, self).__init__()
         #populate the layers with your custom functions or pytorch
         #functions.
@@ -22,7 +21,7 @@ class ResNet:
         self.layer4 = new_block(256, 512) 
         
         self.avgpool = nn.AvgPool2d((1,1))
-        self.fc = nn.Linear(32768, 10) 
+        self.fc = nn.Linear(131072, num_classes) 
 
     def forward(self, x):
         x = self.conv1(x)
