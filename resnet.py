@@ -14,7 +14,7 @@ class ResNet:
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2d((2, 2))
         
-        // TODO: investigate adding residuals
+        # TODO: investigate adding residuals
         
         self.layer1 = new_block(64, 64)
         self.layer2 = new_block(64, 128) 
