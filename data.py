@@ -33,6 +33,8 @@ class Data(Dataset):
         '''
         #TODO: Convert your numpy to a tensor and get the labels
         '''
+    
+    
         image_tensor = torch.from_numpy(image_np).float()
         class_indicator_location = single_image_path.rfind('_c')
         label = int(single_image_path[class_indicator_location+2:class_indicator_location+3])
