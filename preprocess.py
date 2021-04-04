@@ -28,4 +28,4 @@ for batch_num in range(1,6):
         for r in range(4):
             img_rotated = np.rot90(img, r)
             img_save = Image.fromarray(img_rotated)
-            img_save.save('data/unzipped/data_batch_c' + str(label) + '_r' + str(r) + '_b' + str(batch_num) + '_' + str(i) + '.png')
+            img_save.save('data/unpacked/data_batch_c' + str(label) + '_r' + str(r) + '_b' + str(batch_num) + '_' + str(i) + '.png')
