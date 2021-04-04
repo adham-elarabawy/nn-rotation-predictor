@@ -105,8 +105,8 @@ def main():
     train_losses = []
     for epoch in range(n_epochs):
         train_loss = train(train_loader, model, criterion, optimizer, epoch)
-        train_losses.append(train_loss.data)
-        print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.data[0]), end = '\r')
+        train_losses.append(train_loss.item())
+        print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()), end = '\r')
         if epoch % 25 == 0:
             save_checkpoint(model.state_dict(), False, filename = 'epoch{}.pth.tar'.format(epoch))
     # TODO: remove, per Adham's request
