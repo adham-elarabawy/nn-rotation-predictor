@@ -10,13 +10,14 @@ import time
 import shutil
 import yaml
 import argparse
+import os
 
 parser = argparse.ArgumentParser(description='Configuration details for training/testing rotation net')
 parser.add_argument('--config', type=str, required=True)
 parser.add_argument('--train', action='store_true')
 parser.add_argument('--data_dir', type=str, required=True)
 parser.add_argument('--image', type=str)
-parser.add_argument('--model_type', type=str, required=True, description='Actually model type, rot vs. cifar_resnet')
+parser.add_argument('--model_type', type=str, required=True, help='Actually model type, rot vs. cifar_resnet')
 
 args = parser.parse_args()
 
@@ -81,15 +82,19 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=config["momentum"])
 
-    dataset = Data(args.data_dir)
+    # preprocess for windows compatibility
+    data_dir = os.path.abspath(args.data_dir)
+    dataset = Data(data_dir)
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = True)
+    print([int(len(dataset) * .75), int(len(dataset) * .25)])
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = False)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
 
     for epoch in range(n_epochs):
         train_loss = train(train_loader, model, criterion, optimizer, epoch)
         print(train_loss)
-                            
+    val_loss = validate(val_loader, model, criterion)
+    print("Val loss: ", val_loss)
 
 
 
