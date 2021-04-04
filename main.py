@@ -47,6 +47,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         optimizer.step()
         
         # update total loss
+        print(loss)
         total_loss += loss
 
     return total_loss
@@ -83,10 +84,11 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=config["momentum"])
 
     # preprocess for windows compatibility
-    data_dir = os.path.abspath(args.data_dir)
-    dataset = Data(data_dir)
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
+    #data_dir = os.path.abspath(args.data_dir)
+    dataset = Data(args.data_dir)
     print([int(len(dataset) * .75), int(len(dataset) * .25)])
+    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
+    
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = False)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
 
