@@ -4,6 +4,7 @@ from torch.autograd import Variable
 from torchvision import transforms
 from torch.utils.data.dataset import Dataset  # For custom datasets
 from data import Data
+import numpy as np
 #from resnet import ResNet
 from rotnet import RotNet
 import time
@@ -23,16 +24,25 @@ args = parser.parse_args()
 
 config = yaml.load(open(args.config, 'r'), Loader=yaml.FullLoader)
 
+if torch.cuda.is_available():
+    dev = 'cuda:0'
+else:
+    dev = 'cpu'
+dev = torch.device(dev)
+
 
 def train(train_loader, model, criterion, optimizer, epoch):
     model.train()
+    total_loss = 0
     for i, (input, class_target, rot_target) in enumerate(train_loader):
-        total_loss = 0
+
+        input = input.to(dev)
 
         if args.model_type == 'rot':
             target = rot_target
         else:
             target = class_target
+        target = target.to(dev)
         ## Actual training process:
         
         # reset gradients
@@ -47,15 +57,15 @@ def train(train_loader, model, criterion, optimizer, epoch):
         optimizer.step()
         
         # update total loss
-        print(loss)
+        print("LOSS FOR BATCH {}: {}".format(i, loss), end = '\r')
         total_loss += loss
 
     return total_loss
 
 def validate(val_loader, model, criterion):
     model.eval()
+    total_loss = 0
     for i, (input, class_target, rot_target) in enumerate(val_loader):
-        total_loss = 0
 
         if args.model_type == 'rot':
             target = rot_target
@@ -78,25 +88,33 @@ def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', f
         shutil.copyfile(filename, filename2)
 
 def main():
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     n_epochs = config["num_epochs"]
-    model = RotNet(num_classes=4)
+    model = RotNet(num_classes=4).to(dev)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=config["momentum"])
 
-    # preprocess for windows compatibility
-    #data_dir = os.path.abspath(args.data_dir)
     dataset = Data(args.data_dir)
-    print([int(len(dataset) * .75), int(len(dataset) * .25)])
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = False)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
 
+    train_losses = []
     for epoch in range(n_epochs):
         train_loss = train(train_loader, model, criterion, optimizer, epoch)
-        print(train_loss)
+        train_losses.append(train_loss.data[0])
+        print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.data[0]), end = '\r')
+        if epoch % 25 == 0:
+            save_checkpoint(model.state_dict(), False, filename = 'epoch{}.pth.tar'.format(epoch))
+    # TODO: remove, per Adham's request
+    print("LOSS_LIST: {}".format(train_losses))
+    np.savetxt("train_losses.csv", train_losses, delimiter =", ", fmt ='% s')
     val_loss = validate(val_loader, model, criterion)
     print("Val loss: ", val_loss)
+
 
 
 

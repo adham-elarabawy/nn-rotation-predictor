@@ -15,12 +15,10 @@ class RotNet(ResNet):
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2d((2, 2))
         
-        # TODO: investigate adding residuals
-        
         self.layer1 = self.new_block(64, 64)
         self.layer2 = self.new_block(64, 128) 
         self.layer3 = self.new_block(128, 256) 
-        self.layer4 = self.new_block(256, 512) 
+        self.layer4 = self.new_block(256, 512)
         
         self.avgpool = nn.AvgPool2d((1,1))
         self.fc = nn.Linear(131072, num_classes) 

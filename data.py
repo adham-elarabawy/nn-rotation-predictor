@@ -3,6 +3,7 @@ from PIL import Image
 import glob
 import torch
 from torch.utils.data.dataset import Dataset
+import os
 
 '''
 Pytorch uses datasets and has a very handy way of creatig dataloaders in your main.py
@@ -12,7 +13,8 @@ Make sure you read enough documentation.
 class Data(Dataset):
     def __init__(self, data_dir):
         #gets the data from the directory
-        self.image_list = glob.glob(data_dir+'*')
+        self.image_list = glob.glob(data_dir+'/*')
+
         #calculates the length of image_list
         self.data_len = len(self.image_list)
 
