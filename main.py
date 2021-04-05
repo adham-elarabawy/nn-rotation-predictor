@@ -73,20 +73,22 @@ def validate(val_loader, model, criterion):
             target = rot_target
         else:
             target = class_target
+        target = target.to(dev)
 
         # forward pass
-        predicted_batch = model(input)
-        predicted_label = np.argmax(predicted_batch.detach().numpy().reshape(-1))
-
-        # print(f'Predicted: {predicted_label}, Actual: {target.numpy()[0]}')
-        if (target.numpy()[0] == predicted_label):
-            avg_precision += 1
+        predicted_batch = model(input.to(dev))
 
         # compute loss
-        loss = criterion(predicted_batch, target)
+        #loss = criterion(predicted_batch, target)
+
+        predicted_label = np.argmax(predicted_batch.to('cpu').detach().data.numpy().reshape(-1))
+
+        # print(f'Predicted: {predicted_label}, Actual: {target.numpy()[0]}')
+        if (target.to('cpu').detach().numpy()[0] == predicted_label):
+            avg_precision += 1
 
         # update total loss
-        total_loss += loss
+        #total_loss += loss
         print("Running average: " + str(avg_precision / (i + 1)) + " Index: " + str(i), end='\r')
 
     avg_precision /= len(val_loader)
@@ -129,14 +131,17 @@ def main():
 
     # loads frozen model parameters by mutating model up to and including nth block
     if args.model_file is not None:
-        load_model(model)
+        if args.train:
+            load_cifar_from_rot(model)
+        else:
+            load_model(model)
 
     dataset = Data(args.data_dir)
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
 
     val_dataset = Data("data/unpacked_test")
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = False)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = 1, shuffle = True)
 
     if args.train:
         train_losses = []
