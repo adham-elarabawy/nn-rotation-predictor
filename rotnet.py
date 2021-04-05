@@ -9,19 +9,20 @@ class RotNet(ResNet):
         super(ResNet, self).__init__()
         #populate the layers with your custom functions or pytorch
         #functions.
-        
+
         self.conv1 = nn.Conv2d(3, 64, (7, 7), padding=3)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2d((2, 2))
-        
+
         self.layer1 = self.new_block(64, 64)
-        self.layer2 = self.new_block(64, 128) 
-        self.layer3 = self.new_block(128, 256) 
+        self.layer2 = self.new_block(64, 128)
+        self.layer3 = self.new_block(128, 256)
         self.layer4 = self.new_block(256, 512)
-        
+
         self.avgpool = nn.AvgPool2d((1,1))
-        self.fc = nn.Linear(131072, num_classes) 
+        self.fc = nn.Linear(131072, num_classes)
+        self.sm = nn.Softmax()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -37,6 +38,7 @@ class RotNet(ResNet):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)
+        x = self.sm(x)
         return x
 
     def new_block(self, in_planes, out_planes, stride = 1):
