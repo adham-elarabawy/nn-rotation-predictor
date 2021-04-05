@@ -65,6 +65,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
 def validate(val_loader, model, criterion):
     model.eval()
+    avg_precision = 0
     total_loss = 0
     for i, (input, class_target, rot_target) in enumerate(val_loader):
 
@@ -75,14 +76,22 @@ def validate(val_loader, model, criterion):
 
         # forward pass
         predicted_batch = model(input)
+        predicted_label = np.argmax(predicted_batch.detach().numpy().reshape(-1))
 
-        print(predicted_batch)
+        # print(f'Predicted: {predicted_label}, Actual: {target.numpy()[0]}')
+        if (target.numpy()[0] == predicted_label):
+            avg_precision += 1
 
         # compute loss
         loss = criterion(predicted_batch, target)
 
         # update total loss
         total_loss += loss
+        print("Running average: " + str(avg_precision / (i + 1)), end='\r')
+
+    avg_precision /= len(val_loader)
+    print("Average Precision: ", avg_precision)
+
     return total_loss
 
 def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', filename2='rotationnetmodelbest.pth.tar'):
@@ -93,7 +102,7 @@ def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', f
 
 # loads up to 3rd block of resnet impl
 def load_cifar_from_rot(model):
-    state_dict = torch.load(args.model_file)
+    state_dict = torch.load(args.model_file, map_location=torch.device('cpu'))
     rem_list = ['layer4.0.weight', 'layer4.0.bias', 'layer4.1.weight', 'layer4.1.bias', 'fc.weight', 'fc.bias']
     for rem in rem_list:
         state_dict.pop(rem)
@@ -122,7 +131,7 @@ def main():
 
     val_dataset = Data("data/unpacked_test")
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = False)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = 1, shuffle = False)
 
     if args.train:
         train_losses = []
@@ -135,6 +144,7 @@ def main():
         # TODO: remove, per Adham's request
         print("LOSS_LIST: {}".format(train_losses))
         np.savetxt("train_losses.csv", train_losses, delimiter =", ", fmt ='% s')
+    print("jumping to val")
     val_loss = validate(val_loader, model, criterion)
     print("Val loss: ", val_loss)
 
