@@ -22,7 +22,7 @@ class RotNet(ResNet):
 
         self.avgpool = nn.AvgPool2d((1,1))
         self.fc = nn.Linear(131072, num_classes)
-        self.sm = nn.Softmax()
+        # self.sm = nn.Softmax()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -38,7 +38,7 @@ class RotNet(ResNet):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)
-        x = self.sm(x)
+        # x = self.sm(x)
         return x
 
     def new_block(self, in_planes, out_planes, stride = 1):

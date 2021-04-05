@@ -87,7 +87,7 @@ def validate(val_loader, model, criterion):
 
         # update total loss
         total_loss += loss
-        print("Running average: " + str(avg_precision / (i + 1)), end='\r')
+        print("Running average: " + str(avg_precision / (i + 1)) + " Index: " + str(i), end='\r')
 
     avg_precision /= len(val_loader)
     print("Average Precision: ", avg_precision)
@@ -102,10 +102,15 @@ def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', f
 
 # loads up to 3rd block of resnet impl
 def load_cifar_from_rot(model):
-    state_dict = torch.load(args.model_file, map_location=torch.device('cpu'))
+    state_dict = torch.load(args.model_file)
     rem_list = ['layer4.0.weight', 'layer4.0.bias', 'layer4.1.weight', 'layer4.1.bias', 'fc.weight', 'fc.bias']
     for rem in rem_list:
         state_dict.pop(rem)
+    model.load_state_dict(state_dict, strict = False)
+
+# loads up to 3rd block of resnet impl
+def load_model(model):
+    state_dict = torch.load(args.model_file)
     model.load_state_dict(state_dict, strict = False)
 
 def main():
@@ -124,15 +129,14 @@ def main():
 
     # loads frozen model parameters by mutating model up to and including nth block
     if args.model_file is not None:
-        load_cifar_from_rot(model)
+        load_model(model)
 
     dataset = Data(args.data_dir)
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
 
     val_dataset = Data("data/unpacked_test")
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = False)
-<<<<<<< HEAD
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = 1, shuffle = False)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
 
     if args.train:
         train_losses = []
@@ -141,25 +145,10 @@ def main():
             train_losses.append(train_loss.item())
             print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()))
             if epoch % 25 == 0:
-                save_checkpoint(model.state_dict(), False, filename = 'epoch{}.pth.tar'.format(epoch))
+                save_checkpoint(model.state_dict(), False, filename = 'epoch_{}_model_{}.pth.tar'.format(epoch, model_type))
         # TODO: remove, per Adham's request
         print("LOSS_LIST: {}".format(train_losses))
         np.savetxt("train_losses.csv", train_losses, delimiter =", ", fmt ='% s')
-    print("jumping to val")
-=======
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
-
-    train_losses = []
-    for epoch in range(n_epochs):
-        train_loss = train(train_loader, model, criterion, optimizer, epoch)
-        train_losses.append(train_loss.item())
-        print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()))
-        if epoch % 25 == 0:
-            save_checkpoint(model.state_dict(), False, filename = 'epoch_{}_model_{}.pth.tar'.format(epoch, model_type))
-    # TODO: remove, per Adham's request
-    print("LOSS_LIST: {}".format(train_losses))
-    np.savetxt("train_losses.csv", train_losses, delimiter =", ", fmt ='% s')
->>>>>>> 47f8ca73066dbd6b061ed0deaa8bde17fc9b861d
     val_loss = validate(val_loader, model, criterion)
     print("Val loss: ", val_loss)
 
