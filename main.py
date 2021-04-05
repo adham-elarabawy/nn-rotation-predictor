@@ -92,7 +92,8 @@ def validate(val_loader, model, criterion):
 
         # update total loss
         #total_loss += loss
-        print("Running average: " + str(avg_precision / (i + 1)) + " Index: " + str(i), end= ' '* 15 + '\r')
+        if i % 100 == 0:
+            print("Running average: " + str(avg_precision / (i + 1)) + " Index: " + str(i), end= ' '* 15 + '\r')
 
     avg_precision /= len(val_loader)
     print("Average Precision: ", avg_precision)
@@ -141,8 +142,6 @@ def main():
 
     dataset = Data(args.data_dir)
     train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .01), int(len(dataset) * .24)])
-
-    val_dataset = Data("data/unpacked_test")
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], num_workers = 4, pin_memory = True, shuffle = False)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = 1, num_workers = 4, shuffle = False)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size = 1, num_workers = 4, shuffle = False)
