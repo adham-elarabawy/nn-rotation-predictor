@@ -19,6 +19,7 @@ parser.add_argument('--train', action='store_true')
 parser.add_argument('--data_dir', type=str, required=True)
 parser.add_argument('--image', type=str)
 parser.add_argument('--model_type', type=str, required=True, help='Actually model type, rot vs. cifar_resnet')
+parser.add_argument('--model_file', type=str, help='The filename of the model to be loaded')
 
 args = parser.parse_args()
 
@@ -87,6 +88,12 @@ def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', f
     if best_one:
         shutil.copyfile(filename, filename2)
 
+# loads up to 3rd block of resnet impl
+def load_cifar_from_rot(model):
+    state_dict = torch.load(args.model_file)
+    print(state_dict)
+    #loaded_model.load_state_dict(torch.load())
+
 def main():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -95,6 +102,11 @@ def main():
     model = RotNet(num_classes=4).to(dev)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=config["momentum"])
+
+    # loads frozen model parameters by mutating model up to and including nth block
+    if args.model_file is not None:
+        load_cifar_from_rot(model)
+        return
 
     dataset = Data(args.data_dir)
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
@@ -105,8 +117,8 @@ def main():
     train_losses = []
     for epoch in range(n_epochs):
         train_loss = train(train_loader, model, criterion, optimizer, epoch)
-        train_losses.append(train_loss.data)
-        print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.data[0]), end = '\r')
+        train_losses.append(train_loss.item())
+        print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()))
         if epoch % 25 == 0:
             save_checkpoint(model.state_dict(), False, filename = 'epoch{}.pth.tar'.format(epoch))
     # TODO: remove, per Adham's request
@@ -114,8 +126,6 @@ def main():
     np.savetxt("train_losses.csv", train_losses, delimiter =", ", fmt ='% s')
     val_loss = validate(val_loader, model, criterion)
     print("Val loss: ", val_loss)
-
-
 
 
 
