@@ -94,22 +94,28 @@ def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', f
 # loads up to 3rd block of resnet impl
 def load_cifar_from_rot(model):
     state_dict = torch.load(args.model_file)
-    print(state_dict)
-    #loaded_model.load_state_dict(torch.load())
+    rem_list = ['layer4.0.weight', 'layer4.0.bias', 'layer4.1.weight', 'layer4.1.bias', 'fc.weight', 'fc.bias']
+    for rem in rem_list:
+        state_dict.pop(rem)
+    model.load_state_dict(state_dict, strict = False)
 
 def main():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
+    if args.model_type == 'rot':
+        num_classes = 4
+    else:
+        num_classes = 10
+
     n_epochs = config["num_epochs"]
-    model = RotNet(num_classes=4).to(dev)
+    model = RotNet(num_classes = num_classes).to(dev)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=config["momentum"])
 
     # loads frozen model parameters by mutating model up to and including nth block
     if args.model_file is not None:
         load_cifar_from_rot(model)
-        return
 
     dataset = Data(args.data_dir)
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
