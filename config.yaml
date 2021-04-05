@@ -9,4 +9,4 @@ image_height: 32
 image_width: 32
 high_lr: 0.01
 low_lr: 0.0025
-gamma: 0.95
+gamma: 0.8
