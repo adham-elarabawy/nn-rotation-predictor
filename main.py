@@ -120,7 +120,7 @@ def main():
         train_losses.append(train_loss.item())
         print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()))
         if epoch % 25 == 0:
-            save_checkpoint(model.state_dict(), False, filename = 'epoch{}.pth.tar'.format(epoch))
+            save_checkpoint(model.state_dict(), False, filename = 'epoch_{}_model_{}.pth.tar'.format(epoch, model_type))
     # TODO: remove, per Adham's request
     print("LOSS_LIST: {}".format(train_losses))
     np.savetxt("train_losses.csv", train_losses, delimiter =", ", fmt ='% s')
