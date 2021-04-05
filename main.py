@@ -32,7 +32,7 @@ else:
 dev = torch.device(dev)
 
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, scheduler):
     model.train()
     total_loss = 0
     for i, (input, class_target, rot_target) in enumerate(train_loader):
@@ -56,6 +56,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
         loss.backward()
         # update weights/biases
         optimizer.step()
+
+        # for cyclic lr, must step after every batch
+        scheduler.step()
 
         # update total loss
         print("LOSS FOR BATCH {}: {}".format(i, loss), end = '\r')
@@ -94,7 +97,7 @@ def validate(val_loader, model, criterion):
     avg_precision /= len(val_loader)
     print("Average Precision: ", avg_precision)
 
-    return total_loss
+    return avg_precision
 
 def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', filename2='rotationnetmodelbest.pth.tar'):
     torch.save(state, filename)
@@ -127,11 +130,11 @@ def main():
     n_epochs = config["num_epochs"]
     model = RotNet(num_classes = num_classes).to(dev)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=config["momentum"])
+    optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum = config["momentum"])
 
     # loads frozen model parameters by mutating model up to and including nth block
     if args.model_file is not None:
-        if args.train:
+        if args.train and args.model_type == 'cifar_from_rot':
             load_cifar_from_rot(model)
         else:
             load_model(model)
@@ -140,15 +143,20 @@ def main():
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
 
     val_dataset = Data("data/unpacked_test")
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = False)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], num_workers = 4, pin_memory = True, shuffle = False)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = 1, shuffle = True)
+    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, config["low_lr"], config["high_lr"])
 
     if args.train:
         train_losses = []
         for epoch in range(n_epochs):
-            train_loss = train(train_loader, model, criterion, optimizer, epoch)
+            train_loss = train(train_loader, model, criterion, optimizer, epoch, scheduler)
+            val_loss = validate(val_loader, model, criterion)
+
             train_losses.append(train_loss.item())
             print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()))
+            print("VAL LOSS: {}".format(val_loss))
+            
             if epoch % 25 == 0:
                 save_checkpoint(model.state_dict(), False, filename = 'epoch_{}_model_{}.pth.tar'.format(epoch, args.model_type))
         # TODO: remove, per Adham's request
