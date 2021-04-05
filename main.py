@@ -45,7 +45,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
             target = class_target
         target = target.to(dev)
         ## Actual training process:
-        
+
         # reset gradients
         optimizer.zero_grad()
         # forward pass
@@ -56,7 +56,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         loss.backward()
         # update weights/biases
         optimizer.step()
-        
+
         # update total loss
         print("LOSS FOR BATCH {}: {}".format(i, loss), end = '\r')
         total_loss += loss
@@ -75,9 +75,12 @@ def validate(val_loader, model, criterion):
 
         # forward pass
         predicted_batch = model(input)
+
+        print(predicted_batch)
+
         # compute loss
         loss = criterion(predicted_batch, target)
-        
+
         # update total loss
         total_loss += loss
     return total_loss
@@ -110,20 +113,22 @@ def main():
 
     dataset = Data(args.data_dir)
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
-    
+
+    val_dataset = Data("data/unpacked_test")
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = False)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
 
-    train_losses = []
-    for epoch in range(n_epochs):
-        train_loss = train(train_loader, model, criterion, optimizer, epoch)
-        train_losses.append(train_loss.item())
-        print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()))
-        if epoch % 25 == 0:
-            save_checkpoint(model.state_dict(), False, filename = 'epoch{}.pth.tar'.format(epoch))
-    # TODO: remove, per Adham's request
-    print("LOSS_LIST: {}".format(train_losses))
-    np.savetxt("train_losses.csv", train_losses, delimiter =", ", fmt ='% s')
+    if args.train:
+        train_losses = []
+        for epoch in range(n_epochs):
+            train_loss = train(train_loader, model, criterion, optimizer, epoch)
+            train_losses.append(train_loss.item())
+            print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()))
+            if epoch % 25 == 0:
+                save_checkpoint(model.state_dict(), False, filename = 'epoch{}.pth.tar'.format(epoch))
+        # TODO: remove, per Adham's request
+        print("LOSS_LIST: {}".format(train_losses))
+        np.savetxt("train_losses.csv", train_losses, delimiter =", ", fmt ='% s')
     val_loss = validate(val_loader, model, criterion)
     print("Val loss: ", val_loss)
 
