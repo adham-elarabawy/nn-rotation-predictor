@@ -102,7 +102,7 @@ def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', f
 
 # loads up to 3rd block of resnet impl
 def load_cifar_from_rot(model):
-    state_dict = torch.load(args.model_file)
+    state_dict = torch.load(args.model_file, map_location=torch.device('cpu'))
     rem_list = ['layer4.0.weight', 'layer4.0.bias', 'layer4.1.weight', 'layer4.1.bias', 'fc.weight', 'fc.bias']
     for rem in rem_list:
         state_dict.pop(rem)
@@ -110,7 +110,7 @@ def load_cifar_from_rot(model):
 
 # loads up to 3rd block of resnet impl
 def load_model(model):
-    state_dict = torch.load(args.model_file)
+    state_dict = torch.load(args.model_file, map_location=torch.device('cpu'))
     model.load_state_dict(state_dict, strict = False)
 
 def main():
