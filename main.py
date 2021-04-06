@@ -32,7 +32,7 @@ else:
 dev = torch.device(dev)
 
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, scheduler):
     model.train()
     total_loss = 0
     for i, (input, class_target, rot_target) in enumerate(train_loader):
@@ -57,8 +57,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # update weights/biases
         optimizer.step()
 
+        # for cyclic lr, must step after every batch
+        scheduler.step()
+
         # update total loss
-        print("LOSS FOR BATCH {}: {}".format(i, loss), end = '\r')
+        print("LOSS FOR BATCH {}: {}".format(i, loss), end = ' ' * 15 + '\r')
         total_loss += loss
 
     return total_loss
@@ -73,26 +76,29 @@ def validate(val_loader, model, criterion):
             target = rot_target
         else:
             target = class_target
+        target = target.to(dev)
 
         # forward pass
-        predicted_batch = model(input)
-        predicted_label = np.argmax(predicted_batch.detach().numpy().reshape(-1))
-
-        # print(f'Predicted: {predicted_label}, Actual: {target.numpy()[0]}')
-        if (target.numpy()[0] == predicted_label):
-            avg_precision += 1
+        predicted_batch = model(input.to(dev))
 
         # compute loss
-        loss = criterion(predicted_batch, target)
+        #loss = criterion(predicted_batch, target)
+
+        predicted_label = np.argmax(predicted_batch.to('cpu').detach().data.numpy().reshape(-1))
+
+        # print(f'Predicted: {predicted_label}, Actual: {target.numpy()[0]}')
+        if (target.to('cpu').detach().numpy()[0] == predicted_label):
+            avg_precision += 1
 
         # update total loss
-        total_loss += loss
-        print("Running average: " + str(avg_precision / (i + 1)) + " Index: " + str(i), end='\r')
+        #total_loss += loss
+        if i % 100 == 0:
+            print("Running average: " + str(avg_precision / (i + 1)) + " Index: " + str(i), end= ' '* 15 + '\r')
 
     avg_precision /= len(val_loader)
     print("Average Precision: ", avg_precision)
 
-    return total_loss
+    return avg_precision
 
 def save_checkpoint(state, best_one, filename='rotationnetcheckpoint.pth.tar', filename2='rotationnetmodelbest.pth.tar'):
     torch.save(state, filename)
@@ -107,6 +113,11 @@ def load_cifar_from_rot(model):
     for rem in rem_list:
         state_dict.pop(rem)
     model.load_state_dict(state_dict, strict = False)
+
+    for name, param in model.named_parameters():
+        if name not in rem_list:
+            param.required_grad = False
+            print("froze {}".format(name))
 
 # loads up to 3rd block of resnet impl
 def load_model(model):
@@ -125,32 +136,39 @@ def main():
     n_epochs = config["num_epochs"]
     model = RotNet(num_classes = num_classes).to(dev)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=config["momentum"])
+    optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum = config["momentum"])
 
     # loads frozen model parameters by mutating model up to and including nth block
     if args.model_file is not None:
-        load_model(model)
+        if args.train and args.model_type == 'cifar_from_rot':
+            load_cifar_from_rot(model)
+        else:
+            load_model(model)
 
     dataset = Data(args.data_dir)
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .25)])
-
-    val_dataset = Data("data/unpacked_test")
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], shuffle = False)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = config["batch_size"], shuffle = True)
+    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(dataset, [int(len(dataset) * .75), int(len(dataset) * .01), int(len(dataset) * .24)])
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], num_workers = 4, pin_memory = True, shuffle = False)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = 1, num_workers = 4, shuffle = False)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size = 1, num_workers = 4, shuffle = False)
+    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, config["low_lr"], config["high_lr"], step_size_up = len(dataset) // 2, mode = 'exp_range', gamma = config["gamma"])
 
     if args.train:
         train_losses = []
         for epoch in range(n_epochs):
-            train_loss = train(train_loader, model, criterion, optimizer, epoch)
+            train_loss = train(train_loader, model, criterion, optimizer, epoch, scheduler)
+            val_loss = validate(val_loader, model, criterion)
+
             train_losses.append(train_loss.item())
             print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()))
-            if epoch % 25 == 0:
-                save_checkpoint(model.state_dict(), False, filename = 'epoch_{}_model_{}.pth.tar'.format(epoch, model_type))
+            print("VAL ACCURACY: {}".format(val_loss))
+            
+            if epoch % 5 == 0:
+                save_checkpoint(model.state_dict(), False, filename = 'epoch_{}_model_{}.pth.tar'.format(epoch, args.model_type))
         # TODO: remove, per Adham's request
         print("LOSS_LIST: {}".format(train_losses))
         np.savetxt("train_losses.csv", train_losses, delimiter =", ", fmt ='% s')
-    val_loss = validate(val_loader, model, criterion)
-    print("Val loss: ", val_loss)
+    test_loss = validate(test_loader, model, criterion)
+    print("Test accuracy: ", test_loss)
 
 
 
