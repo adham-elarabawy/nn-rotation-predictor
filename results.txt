@@ -1,0 +1,19 @@
+We simply implemented a network with 3 convolutional blocks (as defined in the
+paper) followed by a fully connected layer that outputted 4 output nodes. Each output corresponded
+to the softmax-generated probability of the input image being 1 of 4 90 degree rotations.
+
+The intuition behind this architecture and network was to force the model to
+learn some generalized knowledge about images in general by forcing it to
+try and learn about what makes an image upright, which is an extremely general task.
+
+While training this model, we were able to bring our losses pretty far down (down to a raw 0.5).
+This number doesn't really mean much, though, so we computed validation (testing) accuracy
+for this model at 6 different epoch checkpoints that we saved incrementally while training the
+model. After analyzing that, we found that our model performed best (~75% accuracy) when using
+weights from epoch 25, and that our validation average accuracy significantly decreased when using weights
+from past that epoch number. Additionally, we found that we could validate that this model
+was actually learning helpful features by transferring the trained convolutional layers
+to a CIFAR-10 classification task, and we found that our initial accuracy was atleast a twofold increase
+as opposed to initially randomized weights, which are generally promising indicators.
+
+You can also see our training plots in the base directory of this repo.
