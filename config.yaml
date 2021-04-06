@@ -7,6 +7,6 @@ learning_rate : .1
 num_epochs: 100
 image_height: 32
 image_width: 32
-high_lr: 0.01
-low_lr: 0.0025
-gamma: 0.8
+high_lr: 0.05
+low_lr: 0.001
+gamma: 0.999

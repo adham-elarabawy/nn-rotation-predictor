@@ -114,6 +114,11 @@ def load_cifar_from_rot(model):
         state_dict.pop(rem)
     model.load_state_dict(state_dict, strict = False)
 
+    for name, param in model.named_parameters():
+        if name not in rem_list:
+            param.required_grad = False
+            print("froze {}".format(name))
+
 # loads up to 3rd block of resnet impl
 def load_model(model):
     state_dict = torch.load(args.model_file)
@@ -145,7 +150,7 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = config["batch_size"], num_workers = 4, pin_memory = True, shuffle = False)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size = 1, num_workers = 4, shuffle = False)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size = 1, num_workers = 4, shuffle = False)
-    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, config["low_lr"], config["high_lr"], step_size_up = len(dataset) // 2, gamma = config["gamma"])
+    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, config["low_lr"], config["high_lr"], step_size_up = len(dataset) // 2, mode = 'exp_range', gamma = config["gamma"])
 
     if args.train:
         train_losses = []
@@ -157,7 +162,7 @@ def main():
             print("TOTAL LOSS FOR EPOCH {}: {}".format(epoch, train_loss.item()))
             print("VAL ACCURACY: {}".format(val_loss))
             
-            if epoch % 25 == 0:
+            if epoch % 5 == 0:
                 save_checkpoint(model.state_dict(), False, filename = 'epoch_{}_model_{}.pth.tar'.format(epoch, args.model_type))
         # TODO: remove, per Adham's request
         print("LOSS_LIST: {}".format(train_losses))
